@@ -21,10 +21,10 @@ func main() {
 	streamList, logStreamDescribeError := cloudWatchClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		Descending:          aws.Bool(false),
 		Limit:               aws.Int64(50),
-		LogGroupName:        aws.String("/aws/ecs/CP-Mimix-Sync-TaskSTG"),
-		LogStreamNamePrefix: aws.String("ecs/CUSTOMER_PRICING/cp-mimix-sync-customer-pricing-container/"),
+		LogGroupName:        aws.String("GROUP_NAME"),
+		LogStreamNamePrefix: aws.String("STREAM_PREFIX"),
 		//LogStreamNamePrefix: aws.String("ecs"),
-	});
+	})
 	if logStreamDescribeError != nil {
 		fmt.Println("Got error getting stream details:")
 		fmt.Println(logStreamDescribeError.Error())
@@ -36,7 +36,7 @@ func main() {
 
 		logEventResponse, err := cloudWatchClient.GetLogEvents(&cloudwatchlogs.GetLogEventsInput{
 			Limit:         aws.Int64(10000),
-			LogGroupName:  aws.String("/aws/ecs/CP-Mimix-Sync-TaskSTG"),
+			LogGroupName:  aws.String("GROUP_NAME"),
 			LogStreamName: streamEvent.LogStreamName,
 		})
 
@@ -57,7 +57,7 @@ func main() {
 				break
 			}
 
-			if strings.Contains(*logEvent.Message, "Record ignored due to fallback in the sequence number") {
+			if strings.Contains(*logEvent.Message, "FILTER_CONDITION") {
 				fmt.Println(*logEvent.Message)
 				writeLogs(file, *logEvent.Message)
 			}
@@ -77,7 +77,7 @@ func createFile() *os.File {
 	return f
 }
 
-func writeLogs(file *os.File, msg string)  {
+func writeLogs(file *os.File, msg string) {
 	_, err := file.WriteString(msg)
 	if err != nil {
 		fmt.Println(err)
@@ -86,7 +86,7 @@ func writeLogs(file *os.File, msg string)  {
 	}
 }
 
-func closeFile(file *os.File)  {
+func closeFile(file *os.File) {
 	err := file.Close()
 	if err != nil {
 		fmt.Println(err)
