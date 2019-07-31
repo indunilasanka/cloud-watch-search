@@ -21,9 +21,8 @@ func main() {
 	streamList, logStreamDescribeError := cloudWatchClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		Descending:          aws.Bool(false),
 		Limit:               aws.Int64(50),
-		LogGroupName:        aws.String("GROUP_NAME"),
+		LogGroupName:        aws.String("LOG_GROUP"),
 		LogStreamNamePrefix: aws.String("STREAM_PREFIX"),
-		//LogStreamNamePrefix: aws.String("ecs"),
 	})
 	if logStreamDescribeError != nil {
 		fmt.Println("Got error getting stream details:")
@@ -32,11 +31,10 @@ func main() {
 	}
 
 	for _, streamEvent := range streamList.LogStreams {
-		fmt.Println(*streamEvent.LogStreamName)
 
 		logEventResponse, err := cloudWatchClient.GetLogEvents(&cloudwatchlogs.GetLogEventsInput{
 			Limit:         aws.Int64(10000),
-			LogGroupName:  aws.String("GROUP_NAME"),
+			LogGroupName:  aws.String("LOG_GROUP"),
 			LogStreamName: streamEvent.LogStreamName,
 		})
 
@@ -46,20 +44,15 @@ func main() {
 			os.Exit(1)
 		}
 
-		gotToken := ""
-		nextToken := ""
-
 		for _, logEvent := range logEventResponse.Events {
-			gotToken = nextToken
-			nextToken := *logEventResponse.NextForwardToken
 
-			if gotToken == nextToken {
-				break
-			}
+			splitterResult := strings.Split(*logEvent.Message, "\n")
 
-			if strings.Contains(*logEvent.Message, "FILTER_CONDITION") {
-				fmt.Println(*logEvent.Message)
-				writeLogs(file, *logEvent.Message)
+			for i := range splitterResult {
+				if strings.Contains(splitterResult[i], "FILTER_CONDITION") {
+					fmt.Println(splitterResult[i])
+					writeLogs(file, splitterResult[i])
+				}
 			}
 		}
 	}
@@ -78,7 +71,7 @@ func createFile() *os.File {
 }
 
 func writeLogs(file *os.File, msg string) {
-	_, err := file.WriteString(msg)
+	_, err := file.WriteString(msg + "\n")
 	if err != nil {
 		fmt.Println(err)
 		_ = file.Close()
